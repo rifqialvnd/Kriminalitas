@@ -1,0 +1,424 @@
+HTML :
+<!DOCTYPE html>
+<html lang="id" data-bs-theme="dark">
+
+<head>
+    <meta charset="utf-8">
+    <title>Tingkat Kriminalitas Kota Bandung</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Kriminalitas Bandung, Statistik Kejahatan, Peta Keamanan" name="keywords">
+    <meta content="Informasi mengenai tingkat kriminalitas di Kota Bandung, mencakup statistik kejahatan, jenis kejahatan, dan peta kantor polisi." name="description">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css">
+    
+    <!-- Leaflet Geocoder CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
+</head>
+
+<body>
+    <!-- Hidden JSON data for JavaScript -->
+    <div id="crime-data" style="display: none;">{{ crime_data|safe }}</div>
+    <div id="police-stations" style="display: none;">{{ police_stations|safe }}</div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt me-2"></i>
+                Statistik Kriminal Bandung
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#statistik">Statistik</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#jenis-kejahatan">Jenis Kejahatan</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#peta-kantor-polisi">Peta Kantor Polisi</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#tentang">Tentang</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="text-center py-5 header-section">
+        <div class="container">
+            <h1><i class="fas fa-chart-line me-2"></i>Tingkat Kriminalitas di Kota Bandung</h1>
+            <p class="lead">Visualisasi data statistik kriminal untuk meningkatkan kesadaran dan keamanan masyarakat</p>
+        </div>
+    </header>
+    
+    <!-- Summary Cards -->
+    <section class="container my-5">
+        <div class="row">
+            <div class="col-md-3 col-sm-6">
+                <div class="card stats-card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-3x mb-3"></i>
+                        <h5 class="card-title">Total Kasus</h5>
+                        <p class="card-text display-6">3,582</p>
+                        <small>Tahun 2023</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="card stats-card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-thumbs-down fa-3x mb-3"></i>
+                        <h5 class="card-title">Penurunan</h5>
+                        <p class="card-text display-6">12%</p>
+                        <small>Dari tahun sebelumnya</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="card stats-card bg-warning text-dark">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <h5 class="card-title">Kasus Tertinggi</h5>
+                        <p class="card-text display-6">845</p>
+                        <small>Pencurian</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="card stats-card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-map-marker-alt fa-3x mb-3"></i>
+                        <h5 class="card-title">Kantor Polisi</h5>
+                        <p class="card-text display-6">32</p>
+                        <small>Di seluruh kota</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Yearly Trend Chart -->
+    <section id="statistik" class="container my-5">
+        <h2 class="text-center section-title">Statistik Kriminalitas Tahunan</h2>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="yearlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Crime Types and Monthly Trend -->
+    <section class="container my-5">
+        <div class="row">
+            <!-- Crime Types Chart -->
+            <div class="col-lg-6">
+                <h3 class="mb-4">Jenis Kejahatan</h3>
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="crimeTypesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Monthly Trend Chart -->
+            <div class="col-lg-6">
+                <h3 class="mb-4">Tren Bulanan</h3>
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="monthlyTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- District Comparison Chart -->
+    <section class="container my-5">
+        <h2 class="text-center section-title">Perbandingan Kriminalitas per Kecamatan</h2>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="district-chart-container">
+                    <canvas id="districtComparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Crime Types List -->
+    <section id="jenis-kejahatan" class="container my-5 py-4">
+        <h2 class="text-center section-title">Detail Jenis Kejahatan</h2>
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="list-group">
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-shopping-bag me-2"></i>Pencurian</h5>
+                            <p class="mb-0">Pencurian barang berharga, kendaraan, atau perampokan dengan paksaan</p>
+                        </div>
+                        <span class="badge bg-danger crime-badge">845 kasus</span>
+                    </div>
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-hand-rock me-2"></i>Kekerasan</h5>
+                            <p class="mb-0">Tindak kekerasan fisik, penganiayaan, dan perkelahian</p>
+                        </div>
+                        <span class="badge bg-warning text-dark crime-badge">723 kasus</span>
+                    </div>
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-pills me-2"></i>Narkoba</h5>
+                            <p class="mb-0">Penyalahgunaan, peredaran, dan jual beli narkotika</p>
+                        </div>
+                        <span class="badge bg-info crime-badge">542 kasus</span>
+                    </div>
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-money-bill-wave me-2"></i>Penipuan</h5>
+                            <p class="mb-0">Penipuan finansial, investasi palsu, dan penipuan online</p>
+                        </div>
+                        <span class="badge bg-primary crime-badge">490 kasus</span>
+                    </div>
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-car-crash me-2"></i>Pelanggaran Lalu Lintas</h5>
+                            <p class="mb-0">Pelanggaran aturan lalu lintas yang menyebabkan kecelakaan</p>
+                        </div>
+                        <span class="badge bg-success crime-badge">387 kasus</span>
+                    </div>
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-briefcase me-2"></i>Korupsi</h5>
+                            <p class="mb-0">Penyalahgunaan wewenang untuk keuntungan pribadi</p>
+                        </div>
+                        <span class="badge bg-secondary crime-badge">274 kasus</span>
+                    </div>
+                    <div class="crime-type-item bg-light text-dark">
+                        <div>
+                            <h5><i class="fas fa-desktop me-2"></i>Kejahatan Siber</h5>
+                            <p class="mb-0">Hacking, phishing, dan penyebaran malware</p>
+                        </div>
+                        <span class="badge bg-dark crime-badge">321 kasus</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Police Station Map -->
+    <section id="peta-kantor-polisi" class="container-fluid bg-light py-5">
+        <div class="container">
+            <h2 class="text-center section-title text-dark">Peta Kantor Polisi di Kota Bandung</h2>
+            <div class="row">
+                <div class="col-lg-8">
+                    <div id="map"></div>
+                </div>
+                <div class="col-lg-4 mt-4 mt-lg-0">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Daftar Kantor Polisi</h5>
+                        </div>
+                        <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                            <div id="police-station-list" class="list-group list-group-flush">
+                                <!-- Police stations will be populated here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- About Section -->
+    <section id="tentang" class="container my-5 py-4">
+        <h2 class="text-center section-title">Tentang Data</h2>
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Sumber Data</h5>
+                        <p class="card-text">Data kriminalitas yang ditampilkan pada situs ini bersumber dari Kepolisian Resort Kota Besar (Polrestabes) Bandung dan Badan Pusat Statistik (BPS) Kota Bandung.</p>
+                        
+                        <h5 class="card-title mt-4">Metodologi</h5>
+                        <p class="card-text">Data dikumpulkan dari laporan resmi kepolisian dan disajikan dalam bentuk visualisasi untuk memudahkan pemahaman. Statistik ini mencakup data kriminalitas selama 5 tahun terakhir di seluruh wilayah Kota Bandung.</p>
+                        
+                        <h5 class="card-title mt-4">Tujuan</h5>
+                        <p class="card-text">Visualisasi data ini bertujuan untuk meningkatkan kesadaran masyarakat terhadap tren kriminalitas di Kota Bandung, sehingga masyarakat dapat lebih waspada dan berkontribusi dalam upaya pencegahan tindak kejahatan.</p>
+                        
+                        <div class="alert alert-info mt-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Catatan:</strong> Data ini diperbarui setiap triwulan dan dapat berubah sesuai dengan laporan terbaru dari pihak kepolisian.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h4>Statistik Kriminal Bandung</h4>
+                    <p>Menyajikan data terkini tentang tingkat kriminalitas di Kota Bandung untuk meningkatkan kesadaran dan keamanan masyarakat.</p>
+                </div>
+                <div class="col-lg-3">
+                    <h5>Tautan</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#statistik" class="text-white">Statistik</a></li>
+                        <li><a href="#jenis-kejahatan" class="text-white">Jenis Kejahatan</a></li>
+                        <li><a href="#peta-kantor-polisi" class="text-white">Peta Kantor Polisi</a></li>
+                        <li><a href="#tentang" class="text-white">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h5>Kontak</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-map-marker-alt me-2"></i>Bandung, Jawa Barat</li>
+                        <li><i class="fas fa-envelope me-2"></i>rifqialvnd@upi.edu</li>
+                        <li><i class="fab fa-whatsapp me-2"></i>087738996689</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="mt-4 mb-3">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2023 Statistik Kriminal Bandung. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+</body>
+
+</html>
+
+CSS :
+/* Custom styles for the crime statistics application */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+.section-title {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 3px solid var(--bs-primary);
+}
+
+.stats-card {
+    transition: transform 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 400px;
+    width: 100%;
+}
+
+/* Special taller container for district comparison chart */
+.district-chart-container {
+    position: relative;
+    margin: auto;
+    height: 1000px;
+    width: 100%;
+}
+
+#map {
+    height: 500px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.crime-type-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.crime-type-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: translateX(5px);
+}
+
+.crime-badge {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+}
+
+.district-selector {
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.header-section {
+    background: linear-gradient(to right, #1a2a6c, #b21f1f, #fdbb2d);
+    color: white;
+    padding: 3rem 0;
+}
+
+.footer {
+    padding: 2rem 0;
+    background-color: var(--bs-dark);
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+    
+    .district-chart-container {
+        height: 800px;
+    }
+    
+    #map {
+        height: 350px;
+    }
+    
+    .header-section {
+        padding: 2rem 0;
+    }
+}
